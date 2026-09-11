@@ -1,34 +1,56 @@
-drop table if exists order_items cascade;
-drop table if exists orders cascade;
-drop table if exists products cascade;
-drop table if exists partners cascade;
+-- drop old tables
+DROP TABLE IF EXISTS sales_items CASCADE;
+DROP TABLE IF EXISTS sales CASCADE;
+DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS partners CASCADE;
 
-create table if not exists partners (
-	id serial primary key,
-	inn varchar(12) not null unique,
-	email varchar(50) not null,
-	created_at timestamptz default now()
+-- partners
+CREATE TABLE IF NOT EXISTS partners (
+    id SERIAL PRIMARY KEY,
+    inn VARCHAR(12) NOT NULL UNIQUE,
+    email VARCHAR(50) NOT NULL,
+    company_name VARCHAR(200),
+    phone VARCHAR(50),
+    rating DECIMAL(3,1),
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
-create table if not exists products (
-	id serial primary key,
-	article varchar(50) not null unique,
-	product_name varchar(100) not null,
-	description varchar(300),
-	created_at timestamptz default now()
+
+-- products
+CREATE TABLE IF NOT EXISTS products (
+    id SERIAL PRIMARY KEY,
+    article VARCHAR(50) NOT NULL UNIQUE,
+    product_name VARCHAR(100) NOT NULL,
+    description VARCHAR(300),
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
-create table if not exists orders (
-	id serial primary key,
-	order_code varchar(50) not null,
-	partner_id integer references partners(id),
-	status varchar(20) default 'new' check (status in ('new', 'in progress', 'completed')),
-	created_at timestamptz default now() not null
+
+-- sales
+CREATE TABLE IF NOT EXISTS sales (
+    id SERIAL PRIMARY KEY,
+    sale_code VARCHAR(50) NOT NULL UNIQUE,
+    partner_id INTEGER REFERENCES partners(id),
+    status VARCHAR(20) DEFAULT 'new' CHECK (status IN ('new', 'in progress', 'completed')),
+    sale_date DATE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
-create table if not exists order_items (
-	id serial primary key,
-	order_id integer not null references orders(id) on delete cascade,
-	product_id integer references products(id) on delete restrict,
-	quantity integer not null check (quantity > 0),
-	price decimal(10,2) not null check (price > 0),
-	total decimal(10,2) generated always as (quantity * price) stored,
-	created_at timestamptz default now() not null
+
+-- sales_items
+CREATE TABLE IF NOT EXISTS sales_items (
+    id SERIAL PRIMARY KEY,
+    sale_id INTEGER NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
+    product_id INTEGER REFERENCES products(id) ON DELETE RESTRICT,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    price DECIMAL(10,2) NOT NULL CHECK (price > 0),
+    total DECIMAL(12,2) GENERATED ALWAYS AS (quantity * price) STORED,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- temp_table for import
+CREATE TEMP TABLE IF NOT EXISTS temp_sales (
+    sale_id INTEGER,
+    partner_id INTEGER,
+    product_name TEXT,
+    sale_date TEXT,
+    quantity INTEGER,
+    total_amount DECIMAL(10,2)
 );
